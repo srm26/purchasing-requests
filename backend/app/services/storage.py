@@ -57,3 +57,25 @@ def get(container: str, name: str) -> bytes:
     if get_settings().blob_account_url:
         return _blob_service().get_blob_client(container, name).download_blob().readall()
     return _local_path(container, name).read_bytes()
+
+
+def copy_local_to_blob() -> int:
+    """Moving to Blob: upload files saved on local disk before Blob was turned on, skipping ones already
+    in Blob. Local copies are kept. Returns how many files were uploaded."""
+    s = get_settings()
+    root = Path(s.local_files_dir)
+    if not s.blob_account_url or not root.is_dir():
+        return 0
+    from azure.storage.blob import ContentSettings
+
+    uploaded = 0
+    for container in (s.blob_attachments_container, s.blob_backups_container):
+        for path in sorted((root / container).rglob("*")):
+            if not path.is_file():
+                continue
+            blob = _blob_service().get_blob_client(container, path.relative_to(root / container).as_posix())
+            if blob.exists():
+                continue
+            blob.upload_blob(path.read_bytes(), content_settings=ContentSettings(content_type=content_type(path.name)))
+            uploaded += 1
+    return uploaded

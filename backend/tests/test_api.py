@@ -199,3 +199,27 @@ def test_purchasing_issues_final_po(client, monkeypatch):
     assert client.post(url, headers=ADMIN, data=data, files=po()).status_code == 409
     assert client.post(f"{url}/resend-email", headers=ADMIN).json()["po_email_status"] == "Sent"
     assert len(sent) == 2
+
+
+def test_local_files_copied_to_blob_once(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from app.services import storage
+    s = storage.get_settings()
+    monkeypatch.setattr(s, "local_files_dir", str(tmp_path))
+    monkeypatch.setattr(s, "blob_account_url", "https://example.blob.core.windows.net/")
+    (tmp_path / "attachments" / "PR-1").mkdir(parents=True)
+    (tmp_path / "attachments" / "PR-1" / "a.pdf").write_bytes(PDF)
+    (tmp_path / "backups").mkdir()
+    (tmp_path / "backups" / "db.db").write_bytes(b"x")
+    (tmp_path / "other").mkdir()
+    (tmp_path / "other" / "ignored.txt").write_bytes(b"x")
+    blobs = {}
+
+    def client(container, name):
+        return SimpleNamespace(exists=lambda: (container, name) in blobs,
+                               upload_blob=lambda data, **kw: blobs.__setitem__((container, name), data))
+    monkeypatch.setattr(storage, "_blob_service", lambda: SimpleNamespace(get_blob_client=client))
+    assert storage.copy_local_to_blob() == 2
+    assert blobs == {("attachments", "PR-1/a.pdf"): PDF, ("backups", "db.db"): b"x"}
+    assert storage.copy_local_to_blob() == 0  # already there: nothing uploaded again

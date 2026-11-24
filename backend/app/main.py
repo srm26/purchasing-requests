@@ -13,7 +13,7 @@ from .config import get_settings
 from .db import SessionLocal, init_db
 from .models import LookupValue
 from .routers import meta, requests
-from .services import backup, lookups
+from .services import backup, lookups, storage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("po_intake")
@@ -38,6 +38,11 @@ async def lifespan(_: FastAPI):
     with SessionLocal() as db:
         if not db.scalar(select(func.count()).select_from(LookupValue)):
             lookups.refresh(db, "startup")
+    try:
+        if copied := storage.copy_local_to_blob():
+            log.info("Copied %d local file(s) to Blob", copied)
+    except Exception:
+        log.exception("Copying local files to Blob failed; files saved before Blob was on may not open")
     scheduler = None
     if settings.scheduler_enabled:
         scheduler = BackgroundScheduler(timezone="UTC")
