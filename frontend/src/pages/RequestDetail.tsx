@@ -207,9 +207,10 @@ export default function RequestDetail() {
           <Card title="Project costing">
             <Dl items={[
               ["PO extension / add-on", yesNo(r.is_po_extension)], ["Previous PO", r.previous_po],
-              ["Capital project", yesNo(r.is_capital_project)],
-              [r.is_capital_project ? "Capital project number" : "Project number", <span className="mono">{r.project_number}</span>],
-              [r.is_capital_project ? "Capital task / cost center" : "Task / cost center", <span className="mono">{r.cost_center}</span>],
+              ["Capital project", yesNo(r.is_capital_project)], ["Capital project number", r.capital_project_number],
+              ["Capital task / cost center", r.capital_cost_center && <span className="mono">{r.capital_cost_center}</span>],
+              ["Project number", <span className="mono">{r.project_number}</span>],
+              ["Task / cost center", <span className="mono">{r.cost_center}</span>],
             ]} />
           </Card>
           {r.description && <Card title="Description / notes"><div className="prose">{r.description}</div></Card>}

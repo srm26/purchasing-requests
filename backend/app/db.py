@@ -57,6 +57,7 @@ def _add_missing_columns() -> None:
     """create_all only creates missing tables. Add columns introduced after a table was created."""
     added = {
         ("attachments", "category"): "VARCHAR(20) NOT NULL DEFAULT 'supporting'",
+        ("requests", "capital_cost_center"): "VARCHAR(4)",
         ("requests", "legal_review"): "BOOLEAN",
         ("requests", "po_number"): "VARCHAR(50)",
         ("requests", "po_issued_at"): "DATETIME",

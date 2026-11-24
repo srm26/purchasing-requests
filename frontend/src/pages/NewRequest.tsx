@@ -30,8 +30,10 @@ const schema = z.object({
   is_po_extension: yesNo,
   previous_po: z.string().trim().optional(),
   is_capital_project: yesNo,
-  project_number: z.string().trim().regex(/^\d{9}$/, "Must be exactly 9 digits"),
-  cost_center: z.string().trim().regex(/^\d{4}$/, "Must be exactly 4 digits"),
+  capital_project_number: z.string().trim().optional(),
+  capital_cost_center: z.string().trim().optional(),
+  project_number: z.string().trim().regex(/^\d{9}$/, "Project number must be exactly 9 digits"),
+  cost_center: z.string().trim().regex(/^\d{4}$/, "Task / cost center must be exactly 4 digits"),
   supplier_name: z.string().trim().min(2, "Supplier name is required"),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
@@ -49,6 +51,8 @@ const schema = z.object({
   const bad = splitEmails(v.po_recipients).filter((e) => !z.email().safeParse(e).success);
   if (bad.length) issue("po_recipients", `Not a valid email: ${bad.join(", ")}`);
   if (v.is_po_extension && !v.previous_po) issue("previous_po", "Previous PO is required for an extension / add-on");
+  if (v.is_capital_project && !/^\d{9}$/.test(v.capital_project_number ?? "")) issue("capital_project_number", "Capital project number must be exactly 9 digits");
+  if (v.is_capital_project && !/^\d{4}$/.test(v.capital_cost_center ?? "")) issue("capital_cost_center", "Capital task / cost center must be exactly 4 digits");
   if (v.amount >= HIGH_VALUE_AMOUNT && v.legal_review === undefined) issue("legal_review", "Choose Yes or No");
   if (v.start_date && v.end_date && v.end_date < v.start_date) issue("end_date", "End date can't be before the start date");
   if (v.agreement_signed && !v.signature_date) issue("signature_date", "Date of signature is required");
@@ -58,8 +62,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const DEFAULTS: Partial<FormValues> = {
-  approver_email: "", other_approver_email: "", po_recipients: "", previous_po: "",
-  project_number: "", cost_center: "",
+  approver_email: "", other_approver_email: "", po_recipients: "", previous_po: "", capital_project_number: "",
+  capital_cost_center: "", project_number: "", cost_center: "",
   supplier_name: "", start_date: "", end_date: "", signature_date: "", is_urgent: false, urgent_reason: "", description: "",
 };
 
@@ -215,6 +219,8 @@ export default function NewRequest() {
         po_recipients: splitEmails(v.po_recipients),
         previous_po: blankToNull(v.previous_po),
         // Hidden answers are dropped so a stale value can't fail server validation.
+        capital_project_number: v.is_capital_project ? blankToNull(v.capital_project_number) : null,
+        capital_cost_center: v.is_capital_project ? blankToNull(v.capital_cost_center) : null,
         legal_review: v.amount >= HIGH_VALUE_AMOUNT ? v.legal_review ?? null : null,
         signature_date: blankToNull(v.signature_date), urgent_reason: blankToNull(v.urgent_reason),
         description: blankToNull(v.description),
@@ -344,11 +350,18 @@ export default function NewRequest() {
             <YesNo control={control} name="is_capital_project" label="Capital project" />
           </Field>
           <div className="field" />
-          {/* A capital project uses the capital project number and task / cost center instead of the regular ones. */}
-          <Field label={isCapital ? "Capital project number" : "Project number"} required error={errors.project_number} htmlFor="project_number" hint="Exactly 9 digits">
+          {isCapital && (<>
+            <Field label="Capital project number" required error={errors.capital_project_number} htmlFor="capital_project_number" hint="Exactly 9 digits">
+              <input id="capital_project_number" className="input mono" inputMode="numeric" maxLength={9} {...register("capital_project_number")} />
+            </Field>
+            <Field label="Capital task / cost center" required error={errors.capital_cost_center} htmlFor="capital_cost_center" hint="Exactly 4 digits">
+              <input id="capital_cost_center" className="input mono" inputMode="numeric" maxLength={4} {...register("capital_cost_center")} />
+            </Field>
+          </>)}
+          <Field label="Project number" required error={errors.project_number} htmlFor="project_number" hint="Exactly 9 digits">
             <input id="project_number" className="input mono" inputMode="numeric" maxLength={9} {...register("project_number")} />
           </Field>
-          <Field label={isCapital ? "Capital task / cost center" : "Task / cost center"} required error={errors.cost_center} htmlFor="cost_center" hint="Exactly 4 digits">
+          <Field label="Task / cost center" required error={errors.cost_center} htmlFor="cost_center" hint="Exactly 4 digits">
             <input id="cost_center" className="input mono" inputMode="numeric" maxLength={4} {...register("cost_center")} />
           </Field>
         </Section>

@@ -32,6 +32,8 @@ export type RequestDetail = RequestSummary & {
   po_recipients: string | null;
   is_po_extension: boolean;
   previous_po: string | null;
+  capital_project_number: string | null;
+  capital_cost_center: string | null;
   legal_review: boolean | null;
   end_date: string;
   agreement_signed: boolean;

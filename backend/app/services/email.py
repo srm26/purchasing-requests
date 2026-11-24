@@ -59,9 +59,10 @@ def body_for(r: PurchaseRequest) -> str:
         ("Total order form / SOW value", money(r.amount)),
         ("Legal / procurement review", None if r.legal_review is None else yes_no(r.legal_review)),
         ("PO extension / add-on", yes_no(r.is_po_extension) + (f" – Previous PO {r.previous_po}" if r.previous_po else "")),
-        ("Capital project", yes_no(r.is_capital_project)),
-        ("Capital project number" if r.is_capital_project else "Project number", r.project_number),
-        ("Capital task / cost center" if r.is_capital_project else "Task / cost center", r.cost_center),
+        ("Capital project", yes_no(r.is_capital_project) + (f" – {r.capital_project_number}" if r.capital_project_number else "")),
+        ("Capital task / cost center", r.capital_cost_center),
+        ("Project number", r.project_number),
+        ("Task / cost center", r.cost_center),
     ]
 
     trs = "".join(

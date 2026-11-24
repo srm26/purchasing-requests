@@ -47,11 +47,12 @@ def test_validation(client):
     # Conditional fields
     assert ok(is_po_extension=True) == 422
     assert ok(is_po_extension=True, previous_po="PO12345") == 201
-    # Capital project: the same 9-digit project number and 4-digit task / cost center fields hold the capital ones
-    assert ok(is_capital_project=True, project_number="CP-1") == 422
-    assert ok(is_capital_project=True, cost_center="12a4") == 422
-    cap = submit(client, ALICE, is_capital_project=True, project_number="098765432", cost_center="0520").json()
-    assert cap["is_capital_project"] and cap["project_number"] == "098765432" and cap["cost_center"] == "0520"
+    assert ok(is_capital_project=True) == 422
+    for bad in ["CP-1", "12345678", "1234567890"]:  # capital project number: exactly 9 digits
+        assert ok(is_capital_project=True, capital_project_number=bad, capital_cost_center="0520") == 422, bad
+    assert ok(is_capital_project=True, capital_project_number="098765432") == 422  # needs capital task / cost center
+    assert ok(is_capital_project=True, capital_project_number="098765432", capital_cost_center="12a4") == 422
+    assert ok(is_capital_project=True, capital_project_number="098765432", capital_cost_center="0520") == 201
     # Legal / procurement review: required at $250,000 and above
     assert ok(amount=250000) == 422
     assert ok(amount=250000, legal_review=False) == 201
@@ -80,9 +81,9 @@ def test_validation(client):
 def test_hidden_answers_are_cleared(client):
     body = submit(client, ALICE, is_po_extension=False, previous_po="PO999", agreement_signed=False,
                   signature_date="2026-01-01", is_urgent=False, urgent_reason="Commercial Deadline",
-                  amount=1000, legal_review=True).json()
+                  is_capital_project=False, capital_cost_center="0520", amount=1000, legal_review=True).json()
     assert body["previous_po"] is None and body["signature_date"] is None and body["urgent_reason"] is None
-    assert body["legal_review"] is None
+    assert body["capital_cost_center"] is None and body["legal_review"] is None
 
 
 def test_requesters_only_see_their_own(client):

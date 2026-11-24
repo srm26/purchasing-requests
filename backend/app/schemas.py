@@ -19,8 +19,10 @@ class RequestIn(BaseModel):
     is_po_extension: bool
     previous_po: str | None = Field(default=None, max_length=50)
     is_capital_project: bool
+    capital_project_number: str | None = Field(default=None, pattern=r"^\d{9}$")
     project_number: str = Field(pattern=r"^\d{9}$")
     cost_center: str = Field(pattern=r"^\d{4}$")
+    capital_cost_center: str | None = Field(default=None, pattern=r"^\d{4}$")
 
     supplier_name: str = Field(min_length=2, max_length=200)
     start_date: date
@@ -41,6 +43,12 @@ class RequestIn(BaseModel):
             self.previous_po = None
         elif not (self.previous_po or "").strip():
             raise ValueError("Previous PO is required for a PO extension / add-on")
+        if not self.is_capital_project:
+            self.capital_project_number = self.capital_cost_center = None
+        elif not (self.capital_project_number or "").strip():
+            raise ValueError("Capital project number is required for a capital project")
+        elif not self.capital_cost_center:
+            raise ValueError("Capital task / cost center is required for a capital project")
         if self.end_date < self.start_date:
             raise ValueError("End date is before start date")
         if not self.agreement_signed:
@@ -103,6 +111,8 @@ class RequestDetail(RequestSummary):
     po_recipients: str | None
     is_po_extension: bool
     previous_po: str | None
+    capital_project_number: str | None
+    capital_cost_center: str | None
     legal_review: bool | None
     end_date: date
     agreement_signed: bool

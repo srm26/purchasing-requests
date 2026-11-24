@@ -38,7 +38,7 @@ def make_request(size: int):
         request_number="PR-2026-0001", supplier_name="Acme", project_number="012345678", cost_center="0410",
         amount=1000.0, requester_email="a@ges.com", requester_name="A", approver_email="ap@ges.com",
         approver_name="Approver", po_recipients=None, is_po_extension=False, previous_po=None,
-        is_capital_project=False, legal_review=None, start_date="2026-01-01", end_date="2026-12-31",
+        is_capital_project=False, capital_project_number=None, capital_cost_center=None, legal_review=None, start_date="2026-01-01", end_date="2026-12-31",
         agreement_signed=False, signature_date=None, is_urgent=False, urgent_reason=None,
         description="<b>x</b>", attachments=[att],
     ), b"%PDF-" + b"0" * size
