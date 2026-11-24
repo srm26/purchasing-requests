@@ -268,7 +268,7 @@ export default function NewRequest() {
           <Field label="Requester" htmlFor="requester">
             <input id="requester" className="input" value={me ? `${me.name} (${me.email})` : ""} disabled />
           </Field>
-          <Field label="Approver" required error={errors.approver_email} htmlFor="approver_email" hint="Someone with Oracle approval access. Not listed? Choose 'Not in the list' at the end.">
+          <Field label="Approver" required error={errors.approver_email} htmlFor="approver_email" hint="Not listed? Choose 'Not in the list' at the end.">
             <Controller control={control} name="approver_email" render={({ field }) => (
               <Combobox id="approver_email" options={[...lists.approvers, NOT_LISTED]} value={field.value} invalid={!!errors.approver_email}
                 onChange={(c) => { field.onChange(c); field.onBlur(); }} placeholder="Search by name or email" />
