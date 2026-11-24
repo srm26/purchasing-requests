@@ -67,7 +67,7 @@ class PurchaseRequest(Base):
     po_number: Mapped[str | None] = mapped_column(String(50))
     po_issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     po_issued_by: Mapped[str | None] = mapped_column(String(320))
-    po_email_status: Mapped[str | None] = mapped_column(String(10))  # Sent | Failed, once a PO is issued
+    po_email_status: Mapped[str | None] = mapped_column(String(10))  # Pending | Sent | Failed, once a PO is issued
     po_email_error: Mapped[str | None] = mapped_column(Text)
     po_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

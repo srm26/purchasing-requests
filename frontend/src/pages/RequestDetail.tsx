@@ -29,7 +29,7 @@ function IssuePo({ r }: { r: Detail }) {
   const done = (msg: string) => (u: Detail) => { qc.setQueryData(["request", r.request_number], u); qc.invalidateQueries({ queryKey: ["requests"] }); toast(msg); };
   const issue = useMutation({
     mutationFn: () => issuePo(r.request_number, poNumber.trim(), note, file!),
-    onSuccess: (u) => done(u.po_email_status === "Sent" ? "PO issued and emailed" : "PO issued, but the email failed")(u),
+    onSuccess: done("PO issued. Emailing it now"),
     onError: (e: Error) => toast(e.message, true),
   });
   const resend = useMutation({
@@ -41,6 +41,7 @@ function IssuePo({ r }: { r: Detail }) {
   if (r.po_number) {
     return (
       <Card title="Final PO email" subtitle="Only Purchasing admins see this panel">
+        {r.po_email_status === "Pending" && <p className="small muted" style={{ margin: "0 0 12px" }}>Emailing the PO…</p>}
         {r.po_email_status === "Failed" && <div className="alert alert-danger" style={{ marginBottom: 12 }}><AlertCircle size={18} aria-hidden /><div>The PO email failed: {r.po_email_error}</div></div>}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <span className="small muted">{r.po_email_sent_at ? `Emailed ${dateTimePT(r.po_email_sent_at)}` : "Not emailed yet"}</span>
@@ -138,7 +139,11 @@ function AdminPanel({ r }: { r: Detail }) {
 export default function RequestDetail() {
   const { number = "" } = useParams();
   const { data: me } = useMe();
-  const { data: r, isLoading, error } = useQuery({ queryKey: ["request", number], queryFn: () => getRequest(number) });
+  const { data: r, isLoading, error } = useQuery({
+    queryKey: ["request", number], queryFn: () => getRequest(number),
+    // Emails go out just after a submit or PO issue; refresh until they settle.
+    refetchInterval: (q) => (q.state.data?.email_status === "Pending" || q.state.data?.po_email_status === "Pending" ? 2000 : false),
+  });
 
   if (isLoading) return <PageLoader />;
   if (error || !r) {

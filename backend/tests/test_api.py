@@ -23,7 +23,9 @@ def test_submit_saves_request_and_sends_email(client):
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["request_number"].startswith("PR-") and body["status"] == "Pending Review"
-    assert body["email_status"] == "Sent"  # local mode writes to the outbox folder
+    assert body["email_status"] == "Pending"  # answered before the email goes out
+    sent = client.get(f"/api/requests/{body['request_number']}", headers=ALICE).json()
+    assert sent["email_status"] == "Sent" and sent["email_sent_at"]  # local mode writes to the outbox folder
     assert body["approver_name"] == "SAMPLE – Approver One"
     assert body["project_number"] == "012345678" and body["cost_center"] == "0410"  # leading zeroes kept
     assert body["po_recipients"] == "ap@ges.com"
@@ -188,7 +190,8 @@ def test_purchasing_issues_final_po(client, monkeypatch):
     r = client.post(url, headers=ADMIN, data=data, files=po())
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["status"] == "PO Issued" and body["po_number"] == "4500123" and body["po_email_status"] == "Sent"
+    assert body["status"] == "PO Issued" and body["po_number"] == "4500123" and body["po_email_status"] == "Pending"
+    assert client.get(f"/api/requests/{n}", headers=ADMIN).json()["po_email_status"] == "Sent"
     assert body["po_issued_by"] == "po.admin@ges.com" and body["history"][-1]["new_status"] == "PO Issued"
     assert sent == [("4500123", "Send invoices to AP.")]
     # The requester sees and can open the PO

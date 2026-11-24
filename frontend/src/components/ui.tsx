@@ -35,7 +35,7 @@ export function StatusBadge({ status }: { status: string }) {
 export function EmailBadge({ status }: { status: string }) {
   if (status === "Sent") return <span className="badge badge-ok"><CheckCircle2 size={13} aria-hidden /> Emailed</span>;
   if (status === "Failed") return <span className="badge badge-danger"><AlertCircle size={13} aria-hidden /> Email failed</span>;
-  return <span className="badge badge-neutral"><Clock size={13} aria-hidden /> Email pending</span>;
+  return <span className="badge badge-neutral"><Clock size={13} aria-hidden /> Emailing…</span>;
 }
 
 export function CapitalTag({ capital }: { capital: boolean }) {

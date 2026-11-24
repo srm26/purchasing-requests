@@ -6,7 +6,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response, StreamingResponse
 from pydantic import ValidationError
 from sqlalchemy import func, select
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..auth import User, get_current_user, require_admin
 from ..config import get_settings
-from ..db import get_db
+from ..db import SessionLocal, get_db
 from ..models import NOT_LISTED_APPROVER, STATUSES, Attachment, PurchaseRequest, StatusHistory, utcnow
 from ..schemas import NotesUpdate, RequestDetail, RequestIn, RequestSummary, StatusUpdate
 from ..services import email, lookups, recipients, storage
@@ -62,6 +62,15 @@ def _send_po_email(db: Session, r: PurchaseRequest, note: str | None = None) -> 
     db.commit()
 
 
+def _email_in_background(request_id: int, po_note: str | None = None, po: bool = False) -> None:
+    """Runs after the response is sent, so the requester isn't kept waiting on Graph (often 5-15 s).
+    Status stays "Pending" until this finishes; a failure is recorded for admin resend as before."""
+    with SessionLocal() as db:
+        r = db.get(PurchaseRequest, request_id)
+        if r:
+            _send_po_email(db, r, po_note) if po else _send_email(db, r)
+
+
 async def _read_files(files: list[UploadFile], label: str, limit: int) -> list[tuple[str, bytes]]:
     s = get_settings()
     if len(files) > limit:
@@ -86,6 +95,7 @@ async def submit_request(
     payload: str = Form(...),
     agreement_files: list[UploadFile] = File(default=[]),
     supporting_files: list[UploadFile] = File(default=[]),
+    background: BackgroundTasks = BackgroundTasks(),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -130,7 +140,7 @@ async def submit_request(
     db.commit()
     log.info("Request %s submitted by %s", r.request_number, user.email)
 
-    _send_email(db, r)  # request is already saved; a failed email is flagged for admin resend
+    background.add_task(_email_in_background, r.id)  # saved first; email_status stays "Pending" until sent
     return r
 
 
@@ -213,6 +223,7 @@ async def issue_po(
     po_number: str = Form(..., min_length=1, max_length=50),
     note: str | None = Form(default=None, max_length=2000),
     file: UploadFile = File(...),
+    background: BackgroundTasks = BackgroundTasks(),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -230,10 +241,10 @@ async def issue_po(
     r.po_number, r.po_issued_at, r.po_issued_by = po_number.strip(), utcnow(), admin.email
     r.history.append(StatusHistory(old_status=r.status, new_status="PO Issued", changed_by=admin.email,
                                    note=f"PO {r.po_number} issued" + (f"\n{note}" if note else "")))
-    r.status = "PO Issued"
+    r.status, r.po_email_status = "PO Issued", "Pending"
     db.commit()
     log.info("PO %s issued for %s by %s", r.po_number, number, admin.email)
-    _send_po_email(db, r, note)  # PO is already saved; a failed email can be resent
+    background.add_task(_email_in_background, r.id, note, po=True)  # PO is saved; a failed email can be resent
     return r
 
 

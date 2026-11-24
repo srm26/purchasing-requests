@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, FileText, FileUp, Mail, Send, X } from "lucide-react";
-import { getLookups, submitRequest, type RequestDetail } from "../api";
+import { getLookups, getRequest, submitRequest, type RequestDetail } from "../api";
 import { fileSize, money } from "../format";
 import Combobox from "../components/Combobox";
 import InfoPopover from "../components/InfoPopover";
@@ -167,7 +167,13 @@ function FileDrop({ id, label, required, hint, max, files, onChange, error }: {
   );
 }
 
-function Success({ r, onAnother }: { r: RequestDetail; onAnother: () => void }) {
+function Success({ r: submitted, onAnother }: { r: RequestDetail; onAnother: () => void }) {
+  // The email goes out just after the save; check back until it's Sent or Failed.
+  const { data } = useQuery({
+    queryKey: ["request", submitted.request_number], queryFn: () => getRequest(submitted.request_number), initialData: submitted,
+    refetchInterval: (q) => (q.state.data?.email_status === "Pending" ? 2000 : false),
+  });
+  const r = data ?? submitted;
   return (
     <div className="page">
       <div className="card success">
@@ -181,7 +187,9 @@ function Success({ r, onAnother }: { r: RequestDetail; onAnother: () => void }) 
         <p className="muted">
           {r.email_status === "Sent"
             ? "Procurement has your requisition and documents. You were copied on the email, and replies from Procurement come straight to you."
-            : "Your requisition is saved. The email to Procurement didn't go out yet; the Procurement team can see it and will resend it."}
+            : r.email_status === "Pending"
+              ? "Your requisition is saved. Emailing it to Procurement now; this usually takes a few seconds."
+              : "Your requisition is saved. The email to Procurement didn't go out yet; the Procurement team can see it and will resend it."}
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 22 }}>
           <Link to={`/requests/${r.request_number}`} className="btn btn-primary">View requisition</Link>

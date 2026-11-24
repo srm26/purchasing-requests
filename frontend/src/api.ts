@@ -44,7 +44,7 @@ export type RequestDetail = RequestSummary & {
   admin_notes: string | null;
   po_issued_at: string | null;
   po_issued_by: string | null;
-  po_email_status: "Sent" | "Failed" | null;
+  po_email_status: "Pending" | "Sent" | "Failed" | null;
   po_email_error: string | null;
   po_email_sent_at: string | null;
   updated_at: string;
