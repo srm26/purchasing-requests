@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..auth import User, get_current_user, require_admin
 from ..config import get_settings
 from ..db import get_db
-from ..models import NON_ORACLE_APPROVER, STATUSES, Attachment, PurchaseRequest, StatusHistory, utcnow
+from ..models import NOT_LISTED_APPROVER, STATUSES, Attachment, PurchaseRequest, StatusHistory, utcnow
 from ..schemas import NotesUpdate, RequestDetail, RequestIn, RequestSummary, StatusUpdate
 from ..services import email, lookups, recipients, storage
 
@@ -105,7 +105,7 @@ async def submit_request(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Attach at least one document")
 
     if data.approver_not_listed:
-        approver_name = NON_ORACLE_APPROVER
+        approver_name = NOT_LISTED_APPROVER
     else:
         approver = lookups.find(db, "approvers", data.approver_email)
         if not approver:

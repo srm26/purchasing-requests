@@ -26,13 +26,15 @@ export default function Combobox({ id, options, value, onChange, placeholder, in
   }, []);
 
   const pick = (o: Option) => { onChange(o.code); setQuery(""); setOpen(false); };
-  const display = open ? query : selected ? `${selected.code} — ${selected.label}` : "";
+  // Options without a description (e.g. "Not in the list") show just the code.
+  const shown = selected ? (selected.label ? `${selected.code} — ${selected.label}` : selected.code) : "";
+  const display = open ? query : shown;
 
   return (
     <div ref={wrap} style={{ position: "relative" }}>
       <input
         id={id} className="input" role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list"
-        aria-invalid={invalid || undefined} autoComplete="off" placeholder={selected && open ? `${selected.code} — ${selected.label}` : placeholder}
+        aria-invalid={invalid || undefined} autoComplete="off" placeholder={selected && open ? shown : placeholder}
         value={display} style={{ paddingRight: 34 }}
         onFocus={() => { setOpen(true); setActive(0); }}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); setActive(0); }}

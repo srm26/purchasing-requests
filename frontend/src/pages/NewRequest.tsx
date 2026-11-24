@@ -15,7 +15,7 @@ const MAX_AGREEMENT_FILES = 3;
 const MAX_SUPPORTING_FILES = 10;
 const MAX_MB = 20;
 // Extra choice at the end of the approver list; picking it shows a box to type the approver's email.
-const NOT_LISTED = { code: "Not in the list", label: "non-Oracle approver" };
+const NOT_LISTED = { code: "Not in the list", label: "" };
 const HIGH_VALUE_AMOUNT = 250_000; // keep in step with HIGH_VALUE_AMOUNT in backend/app/models.py
 const EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
 const yesNo = z.boolean({ error: "Choose Yes or No" });
@@ -268,8 +268,8 @@ export default function NewRequest() {
           </Field>
           {approver === NOT_LISTED.code && (<>
             <div className="field" />
-            <Field label="Non-Oracle approver email" required error={errors.other_approver_email} htmlFor="other_approver_email"
-              hint="The approver isn't in the Oracle list, for example a non-IT approver">
+            <Field label="Approver email" required error={errors.other_approver_email} htmlFor="other_approver_email"
+              hint="Email address of the approver who isn't in the list">
               <input id="other_approver_email" className="input" type="email" maxLength={320}
                 {...register("other_approver_email")} placeholder="name@ges.com" />
             </Field>
