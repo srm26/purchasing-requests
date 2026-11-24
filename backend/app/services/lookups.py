@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import quote, urlparse
 
 from openpyxl import load_workbook
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -101,4 +101,6 @@ def get_lists(db: Session) -> dict[str, list[dict]]:
 
 
 def find(db: Session, list_name: str, code: str) -> LookupValue | None:
-    return db.scalar(select(LookupValue).where(LookupValue.list_name == list_name, LookupValue.code == code))
+    # Case-insensitive: approver codes are emails, and EmailStr lowercases the domain (KMAGANTI@VIAD.COM -> KMAGANTI@viad.com).
+    return db.scalar(select(LookupValue).where(LookupValue.list_name == list_name,
+                                               func.lower(LookupValue.code) == code.lower()))

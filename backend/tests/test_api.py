@@ -223,3 +223,14 @@ def test_local_files_copied_to_blob_once(monkeypatch, tmp_path):
     assert storage.copy_local_to_blob() == 2
     assert blobs == {("attachments", "PR-1/a.pdf"): PDF, ("backups", "db.db"): b"x"}
     assert storage.copy_local_to_blob() == 0  # already there: nothing uploaded again
+
+
+def test_approver_match_ignores_capitals(client):
+    # The approvers list has entries like KMAGANTI@VIAD.COM; email validation lowercases the domain.
+    from app.db import SessionLocal
+    from app.models import LookupValue
+    with SessionLocal() as db:
+        db.add(LookupValue(list_name="approvers", code="UPPER.CASE@EXAMPLE.COM", label="Upper Case"))
+        db.commit()
+    body = submit(client, ALICE, approver_email="UPPER.CASE@EXAMPLE.COM").json()
+    assert body["approver_name"] == "Upper Case"
